@@ -12,6 +12,9 @@ namespace RevitAIClient.Skills
     {
         private readonly SoftSkillManager _manager;
 
+        // Событие, которое срабатывает при успешном создании/обновлении навыка
+        public event Action OnSkillUpdated;
+
         public CreateOrUpdateSoftSkillSkill(SoftSkillManager manager)
         {
             _manager = manager;
@@ -104,13 +107,13 @@ namespace RevitAIClient.Skills
 
                 _manager.SaveSkill(definition);
 
-                // Примечание: UI и список _skills в ChatWindow будут обновлены 
-                // через событие или перезапуск, но мы пока возвращаем успех.
-                // В идеале мы должны сообщить UI обновить список (сделаем это через коллбэк позже).
+                // Вызываем событие для обновления UI
+                OnSkillUpdated?.Invoke();
                 
-                return Task.FromResult($"Skill '{skillName}' created/updated successfully. Please ask the user to restart the chat or refresh skills to use it.");
+                return Task.FromResult($"Skill '{skillName}' created/updated successfully. You can now use it in our conversation.");
             }
             catch (Exception ex)
+
             {
                 return Task.FromResult($"Error creating skill: {ex.Message}");
             }

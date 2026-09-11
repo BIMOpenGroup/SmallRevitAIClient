@@ -1,9 +1,11 @@
 using RevitAIClient.Commands;
 using RevitAIClient.LLM;
 using RevitAIClient.Skills;
+using RevitAIClient.Skills.Dynamic;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -19,22 +21,105 @@ namespace RevitAIClient.UI
         private List<ChatMessage> _displayHistory = new List<ChatMessage>();
         private CancellationTokenSource _cts;
         private List<IRevitSkill> _skills = new List<IRevitSkill>();
+        private SoftSkillManager _softSkillManager;
 
         public ChatWindow()
         {
             InitializeComponent();
             
+            _softSkillManager = new SoftSkillManager();
+            
             // Системный промпт (пока базовый)
             _history.Add(new ChatMessage { role = "system", content = "You are a helpful Revit AI Assistant. Be concise and precise." });
             
-            // Регистрация доступных навыков
+            InitializeSkills();
+            
+            LoadApiKey();
+            LoadHistory();
+        }
+
+        private void InitializeSkills()
+        {
+            _skills.Clear();
+
+            // Регистрация встроенных (Hard) навыков
             _skills.Add(new GetActiveViewSkill());
             _skills.Add(new SetElementParameterSkill());
             _skills.Add(new UpdateCategoryParamInActiveViewSkill());
             _skills.Add(new GetElementParametersSkill());
             
-            LoadApiKey();
-            LoadHistory();
+            // Регистрация системных навыков для управления динамическими навыками
+            var createUpdateSkill = new CreateOrUpdateSoftSkillSkill(_softSkillManager);
+            createUpdateSkill.OnSkillUpdated += RefreshSkillsList; // Подписка на событие обновления
+            _skills.Add(createUpdateSkill);
+            
+            _skills.Add(new GetSoftSkillCodeSkill(_softSkillManager));
+
+            // Загрузка динамических (Soft) навыков
+            var softSkills = _softSkillManager.LoadAllSkills();
+            foreach (var sd in softSkills)
+            {
+                _skills.Add(new DynamicSkillAdapter(sd));
+            }
+
+            UpdateSkillsUI();
+        }
+
+        private void RefreshSkillsList()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                InitializeSkills();
+                LogDebug("Skills list refreshed automatically.");
+            });
+        }
+
+        private void UpdateSkillsUI()
+        {
+            SkillsListPanel.Children.Clear();
+
+            // Группировка: сначала Hard Skills, затем Soft Skills
+            var hardSkills = _skills.Where(s => !(s is DynamicSkillAdapter)).ToList();
+            var softSkills = _skills.Where(s => s is DynamicSkillAdapter).ToList();
+
+            AddSkillGroupToUI("Built-in (Hard)", hardSkills, Brushes.LightGray);
+            AddSkillGroupToUI("Dynamic (Soft)", softSkills, Brushes.LightBlue);
+        }
+
+        private void AddSkillGroupToUI(string title, List<IRevitSkill> skillsGroup, Brush tagColor)
+        {
+            if (skillsGroup.Count == 0) return;
+
+            var titleBlock = new TextBlock
+            {
+                Text = title,
+                FontWeight = FontWeights.Bold,
+                Foreground = Brushes.Gray,
+                Margin = new Thickness(0, 5, 0, 5)
+            };
+            SkillsListPanel.Children.Add(titleBlock);
+
+            foreach (var skill in skillsGroup)
+            {
+                var border = new Border
+                {
+                    Background = tagColor,
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(5),
+                    Margin = new Thickness(0, 0, 0, 5)
+                };
+
+                var tb = new TextBlock
+                {
+                    Text = skill.Name,
+                    FontSize = 12,
+                    ToolTip = skill.Description,
+                    TextWrapping = TextWrapping.Wrap
+                };
+
+                border.Child = tb;
+                SkillsListPanel.Children.Add(border);
+            }
         }
 
         private string GetConfigPath()
