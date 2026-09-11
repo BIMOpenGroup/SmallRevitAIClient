@@ -20,9 +20,11 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBox Grid.Column="0" Height="30" Margin="0,0,5,0" VerticalContentAlignment="Center" Padding="5,0"/>
-            <Button Grid.Column="1" Content="Send" Width="60" Height="30"/>
+            <Button Grid.Column="1" Content="Send" Width="60" Height="30" Margin="0,0,5,0"/>
+            <Button Grid.Column="2" Content="Test API" Width="70" Height="30" Click="TestApi_Click" ToolTip="Test Revit API access from background thread"/>
         </Grid>
     </Grid>
 </Window>

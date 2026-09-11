@@ -1,6 +1,7 @@
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using RevitAIClient.Core;
 using RevitAIClient.UI;
 using System;
 using System.Windows.Interop;
@@ -10,31 +11,37 @@ namespace RevitAIClient.Commands
     [Transaction(TransactionMode.Manual)]
     public class MainCommand : IExternalCommand
     {
-        // Статическое поле для хранения единственного экземпляра окна
         private static ChatWindow _chatWindow;
+        
+        // Статический глобальный обработчик задач для вызова Revit API из фоновых потоков
+        public static RevitTaskHandler TaskHandler { get; private set; }
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             try
             {
+                // Инициализация TaskHandler при первом запуске команды
+                if (TaskHandler == null)
+                {
+                    TaskHandler = new RevitTaskHandler();
+                    TaskHandler.Initialize();
+                }
+
                 if (_chatWindow == null || !_chatWindow.IsLoaded)
                 {
                     _chatWindow = new ChatWindow();
                     
-                    // Привязка окна к главному окну Revit (чтобы окно не терялось и сворачивалось вместе с Revit)
+                    // Привязка окна к главному окну Revit
                     IntPtr revitWindowHandle = commandData.Application.MainWindowHandle;
                     WindowInteropHelper helper = new WindowInteropHelper(_chatWindow);
                     helper.Owner = revitWindowHandle;
 
-                    // Очистка ссылки при закрытии окна пользователем
                     _chatWindow.Closed += (s, e) => _chatWindow = null;
                     
-                    // Открытие окна в немодальном режиме
                     _chatWindow.Show();
                 }
                 else
                 {
-                    // Если окно уже открыто, просто выводим его на передний план
                     if (_chatWindow.WindowState == System.Windows.WindowState.Minimized)
                     {
                         _chatWindow.WindowState = System.Windows.WindowState.Normal;
