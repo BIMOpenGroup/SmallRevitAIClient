@@ -2,70 +2,169 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Revit AI Assistant" Height="600" Width="400"
-        WindowStartupLocation="CenterOwner" Background="White">
-    <Grid>
+        WindowStartupLocation="CenterOwner" Background="#F3F4F6">
+    
+    <Window.Resources>
+        <!-- Стили для скроллбара -->
+        <Style TargetType="ScrollViewer">
+            <Setter Property="Padding" Value="0,0,5,0"/>
+        </Style>
+
+        <!-- Современная кнопка -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#005FB8"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#0078D4"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#004A8F"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#CCCCCC"/>
+                    <Setter Property="Foreground" Value="#888888"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Современное текстовое поле -->
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#1F2937"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Background="{TemplateBinding Background}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="#0078D4"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="PasswordBox">
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#1F2937"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Background="{TemplateBinding Background}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="#0078D4"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Тексты настроек -->
+        <Style TargetType="TextBlock" x:Key="SettingsLabel">
+            <Setter Property="Foreground" Value="#4B5563"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
-        <StackPanel Grid.Row="0" Margin="10">
-            <TextBlock Text="Revit AI Assistant" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="60"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="API Key:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <PasswordBox x:Name="ApiKeyBox" Grid.Column="1" Height="25"/>
-            </Grid>
-            <Grid Margin="0,5,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="60"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="Endpoint:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <TextBox x:Name="EndpointBox" Grid.Column="1" Height="25" Text="https://api.deepseek.com/chat/completions" ToolTip="API Endpoint (OpenAI compatible)"/>
-            </Grid>
-            <Grid Margin="0,5,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="60"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="Model:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <TextBox x:Name="ModelBox" Grid.Column="1" Height="25" Text="deepseek-flash"/>
-            </Grid>
-            <Grid Margin="0,5,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="70"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="40"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <CheckBox x:Name="UseThinkingCheck" Content="Thinking" Grid.Column="0" VerticalAlignment="Center" IsChecked="False"/>
-                <TextBlock Text="Effort:" Grid.Column="2" VerticalAlignment="Center" Margin="5,0,5,0"/>
-                <ComboBox x:Name="EffortCombo" Grid.Column="3" Height="25" SelectedIndex="2">
-                    <ComboBoxItem Content="low"/>
-                    <ComboBoxItem Content="medium"/>
-                    <ComboBoxItem Content="high"/>
-                </ComboBox>
-            </Grid>
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock Text="Revit AI Assistant" FontWeight="Bold" FontSize="18" Foreground="#111827" Margin="0,0,0,12"/>
+            
+            <Border Background="White" CornerRadius="6" Padding="12" BorderBrush="#E5E7EB" BorderThickness="1">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="65"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="API Key:" Style="{StaticResource SettingsLabel}"/>
+                        <PasswordBox x:Name="ApiKeyBox" Grid.Column="1" Height="28"/>
+                    </Grid>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="65"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Endpoint:" Style="{StaticResource SettingsLabel}"/>
+                        <TextBox x:Name="EndpointBox" Grid.Column="1" Height="28" Text="https://api.deepseek.com/chat/completions" ToolTip="API Endpoint (OpenAI compatible)"/>
+                    </Grid>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="65"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Model:" Style="{StaticResource SettingsLabel}"/>
+                        <TextBox x:Name="ModelBox" Grid.Column="1" Height="28" Text="deepseek-flash"/>
+                    </Grid>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="70"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="40"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox x:Name="UseThinkingCheck" Content="Thinking" Grid.Column="0" VerticalAlignment="Center" IsChecked="False" Foreground="#4B5563"/>
+                        <TextBlock Text="Effort:" Grid.Column="2" Style="{StaticResource SettingsLabel}"/>
+                        <ComboBox x:Name="EffortCombo" Grid.Column="3" Height="28" SelectedIndex="2">
+                            <ComboBoxItem Content="low"/>
+                            <ComboBoxItem Content="medium"/>
+                            <ComboBoxItem Content="high"/>
+                        </ComboBox>
+                    </Grid>
+                </StackPanel>
+            </Border>
         </StackPanel>
         
-        <ScrollViewer x:Name="ChatScroll" Grid.Row="1" Margin="10" VerticalScrollBarVisibility="Auto">
-            <StackPanel x:Name="ChatHistoryPanel"/>
-        </ScrollViewer>
+        <Border Grid.Row="1" Background="White" CornerRadius="6" BorderBrush="#E5E7EB" BorderThickness="1" Margin="0,0,0,10">
+            <ScrollViewer x:Name="ChatScroll" VerticalScrollBarVisibility="Auto" Margin="5">
+                <StackPanel x:Name="ChatHistoryPanel" Margin="5"/>
+            </ScrollViewer>
+        </Border>
         
-        <Grid Grid.Row="2" Margin="10">
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="InputBox" Grid.Column="0" Height="50" Margin="0,0,5,0" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Padding="5,5" PreviewKeyDown="InputBox_PreviewKeyDown"/>
-            <Button Grid.Column="1" Content="Send" Width="60" Height="50" Margin="0,0,5,0" Click="Send_Click"/>
-            <Button Grid.Column="2" Content="Test API" Width="60" Height="50" Click="TestApi_Click" ToolTip="Test Revit API access from background thread"/>
+            <TextBox x:Name="InputBox" Grid.Column="0" Height="50" Margin="0,0,8,0" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" PreviewKeyDown="InputBox_PreviewKeyDown" ToolTip="Enter to send, Shift+Enter for new line"/>
+            <Button Grid.Column="1" Content="Send" Width="70" Height="50" Margin="0,0,8,0" Click="Send_Click"/>
+            <Button Grid.Column="2" Content="Test API" Width="70" Height="50" Click="TestApi_Click" Background="#4B5563" ToolTip="Test Revit API access from background thread"/>
         </Grid>
     </Grid>
 </Window>

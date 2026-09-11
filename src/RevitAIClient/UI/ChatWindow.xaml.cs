@@ -28,6 +28,7 @@ namespace RevitAIClient.UI
             
             // Регистрация доступных навыков
             _skills.Add(new GetActiveViewSkill());
+            _skills.Add(new SetElementParameterSkill());
             
             LoadApiKey();
         }
@@ -70,6 +71,27 @@ namespace RevitAIClient.UI
                 AddMessageToUI("System [DEBUG]", message, Brushes.LightYellow);
             });
 #endif
+        }
+
+        private void InputBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                {
+                    // Shift+Enter: разрешаем стандартное поведение (перенос строки)
+                    return;
+                }
+                else
+                {
+                    // Enter без Shift: отправляем сообщение
+                    e.Handled = true; // Предотвращаем добавление новой строки в TextBox
+                    if (InputBox.IsEnabled) // Защита от спама энтером
+                    {
+                        Send_Click(this, new RoutedEventArgs());
+                    }
+                }
+            }
         }
 
         private async void Send_Click(object sender, RoutedEventArgs e)
@@ -156,8 +178,31 @@ namespace RevitAIClient.UI
                     {
                         LogDebug($"[Tool Execute] Name: {call.function.name} Args: {call.function.arguments}");
                         
-                        // Здесь можно добавить UI для подтверждения (RequiresConfirmation)
-                        result = await skill.ExecuteAsync(call.function.arguments);
+                        bool userApproved = true;
+                        
+                        // Если инструмент требует подтверждения - запрашиваем через MessageBox
+                        if (skill.RequiresConfirmation)
+                        {
+                            bool? dialogResult = null;
+                            Dispatcher.Invoke(() =>
+                            {
+                                var msg = $"AI wants to execute: {skill.Name}\n\nArguments:\n{call.function.arguments}\n\nAllow execution?";
+                                var resultMsg = MessageBox.Show(msg, "Action Required (Human-in-the-loop)", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                                dialogResult = (resultMsg == MessageBoxResult.Yes);
+                            });
+                            
+                            userApproved = dialogResult ?? false;
+                        }
+
+                        if (userApproved)
+                        {
+                            result = await skill.ExecuteAsync(call.function.arguments);
+                        }
+                        else
+                        {
+                            result = "Error: User rejected the execution of this tool.";
+                            LogDebug("[Tool Cancelled] User rejected action.");
+                        }
                     }
                     else
                     {
@@ -196,21 +241,59 @@ namespace RevitAIClient.UI
 
         private TextBlock AddMessageToUI(string sender, string text, Brush bgBrush)
         {
+            // Цветовая схема для современного дизайна
+            bool isUser = sender.Equals("User", StringComparison.OrdinalIgnoreCase);
+            bool isSystem = sender.StartsWith("System", StringComparison.OrdinalIgnoreCase);
+            
+            var bubbleColor = isUser ? (Brush)new BrushConverter().ConvertFrom("#DCF8C6") // Светло-зеленый (WhatsApp style)
+                                     : (isSystem ? Brushes.LightYellow 
+                                                 : (Brush)new BrushConverter().ConvertFrom("#F3F4F6")); // Серый для ассистента
+
             var border = new Border
             {
-                Background = bgBrush,
-                CornerRadius = new CornerRadius(5),
-                Padding = new Thickness(10),
-                Margin = new Thickness(0, 0, 0, 10)
+                Background = bubbleColor,
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(12, 10, 12, 10),
+                Margin = new Thickness(0, 0, 0, 12),
+                HorizontalAlignment = isUser ? HorizontalAlignment.Right : HorizontalAlignment.Left,
+                MaxWidth = this.Width * 0.85 // Ограничение ширины пузыря
+            };
+
+            // Добавляем легкую тень для эстетики
+            border.Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = Colors.Black,
+                Direction = 270,
+                ShadowDepth = 1,
+                Opacity = 0.1,
+                BlurRadius = 4
             };
 
             var stack = new StackPanel();
-            stack.Children.Add(new TextBlock { Text = sender + ":", FontWeight = FontWeights.Bold, Margin = new Thickness(0,0,0,5) });
             
-            var textBlock = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
+            if (!isUser) // Для юзера можно не писать "User:", и так понятно по цвету и выравниванию
+            {
+                stack.Children.Add(new TextBlock 
+                { 
+                    Text = sender, 
+                    FontWeight = FontWeights.Bold, 
+                    Foreground = (Brush)new BrushConverter().ConvertFrom("#4B5563"),
+                    Margin = new Thickness(0, 0, 0, 4),
+                    FontSize = 11
+                });
+            }
+            
+            var textBlock = new TextBlock 
+            { 
+                Text = text, 
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = (Brush)new BrushConverter().ConvertFrom("#111827"),
+                FontSize = 13
+            };
+            
             stack.Children.Add(textBlock);
-            
             border.Child = stack;
+            
             ChatHistoryPanel.Children.Add(border);
             ChatScroll.ScrollToBottom();
 
