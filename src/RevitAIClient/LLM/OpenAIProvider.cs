@@ -40,7 +40,7 @@ namespace RevitAIClient.LLM
             _reasoningEffort = reasoningEffort;
         }
 
-        public async Task SendMessageStreamAsync(List<ChatMessage> history, Action<string> onTokenReceived, CancellationToken cancellationToken)
+        public async Task<List<ToolCall>> SendMessageStreamAsync(List<ChatMessage> history, List<ToolSchema> tools, Action<string> onTokenReceived, CancellationToken cancellationToken)
         {
             var serializer = new JavaScriptSerializer();
             
@@ -50,6 +50,11 @@ namespace RevitAIClient.LLM
                 { "messages", history },
                 { "stream", true }
             };
+
+            if (tools != null && tools.Count > 0)
+            {
+                payload["tools"] = tools;
+            }
 
             if (_useThinking)
             {
@@ -63,6 +68,8 @@ namespace RevitAIClient.LLM
             var request = new HttpRequestMessage(HttpMethod.Post, _endpoint);
             request.Headers.Add("Authorization", $"Bearer {_apiKey}");
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+            
+            var toolCallsMap = new Dictionary<int, ToolCall>();
 
             using (var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
             {
@@ -103,7 +110,32 @@ namespace RevitAIClient.LLM
                                         else if (delta.TryGetValue("reasoning_content", out var reasoningObj) && reasoningObj is string reasoningContent)
                                         {
                                             // DeepSeek использует reasoning_content для процесса "Thinking".
-                                            // onTokenReceived?.Invoke(reasoningContent); // Пока игнорируем или логируем
+                                        }
+                                        
+                                        // Парсинг вызова функций (Tool Calls) из SSE-потока
+                                        if (delta.TryGetValue("tool_calls", out var toolCallsObj) && toolCallsObj is System.Collections.ArrayList tcArray)
+                                        {
+                                            foreach (Dictionary<string, object> tcDelta in tcArray)
+                                            {
+                                                if (tcDelta.TryGetValue("index", out var indexObj) && indexObj is int index)
+                                                {
+                                                    if (!toolCallsMap.ContainsKey(index))
+                                                    {
+                                                        toolCallsMap[index] = new ToolCall();
+                                                    }
+                                                    
+                                                    if (tcDelta.TryGetValue("id", out var idObj) && idObj is string id)
+                                                        toolCallsMap[index].id = id;
+                                                        
+                                                    if (tcDelta.TryGetValue("function", out var funcObj) && funcObj is Dictionary<string, object> funcDelta)
+                                                    {
+                                                        if (funcDelta.TryGetValue("name", out var nameObj) && nameObj is string name)
+                                                            toolCallsMap[index].function.name = name;
+                                                        if (funcDelta.TryGetValue("arguments", out var argsObj) && argsObj is string args)
+                                                            toolCallsMap[index].function.arguments += args;
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -116,6 +148,8 @@ namespace RevitAIClient.LLM
                     }
                 }
             }
+            
+            return new List<ToolCall>(toolCallsMap.Values);
         }
     }
 }
