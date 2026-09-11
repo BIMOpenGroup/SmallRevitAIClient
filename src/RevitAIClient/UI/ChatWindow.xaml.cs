@@ -122,6 +122,16 @@ namespace RevitAIClient.UI
             }
         }
 
+        private void SettingsToggleBtn_Click(object sender, RoutedEventArgs e)
+        {
+            SettingsPanel.Visibility = SettingsToggleBtn.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void SkillsToggleBtn_Click(object sender, RoutedEventArgs e)
+        {
+            SkillsPanel.Visibility = SkillsToggleBtn.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        }
+
         private string GetConfigPath()
         {
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
