@@ -29,6 +29,7 @@ namespace RevitAIClient.UI
             // Регистрация доступных навыков
             _skills.Add(new GetActiveViewSkill());
             _skills.Add(new SetElementParameterSkill());
+            _skills.Add(new UpdateCategoryParamInActiveViewSkill());
             
             LoadApiKey();
         }
@@ -298,24 +299,6 @@ namespace RevitAIClient.UI
             ChatScroll.ScrollToBottom();
 
             return textBlock;
-        }
-
-        private async void TestApi_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                string docInfo = await MainCommand.TaskHandler.ExecuteAsync(app =>
-                {
-                    var doc = app.ActiveUIDocument?.Document;
-                    if (doc == null) return "Нет активного документа.";
-                    return $"Документ: {doc.Title}\nПуть: {doc.PathName}";
-                });
-                MessageBox.Show(docInfo, "Revit API Test", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка вызова Revit API:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
         }
     }
 }
