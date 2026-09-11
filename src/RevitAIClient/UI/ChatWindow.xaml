@@ -160,9 +160,11 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBox x:Name="InputBox" Grid.Column="0" Height="50" Margin="0,0,8,0" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" PreviewKeyDown="InputBox_PreviewKeyDown" ToolTip="Enter to send, Shift+Enter for new line"/>
-            <Button Grid.Column="1" Content="Send" Width="70" Height="50" Click="Send_Click"/>
+            <Button Grid.Column="1" Content="Send" Width="70" Height="50" Margin="0,0,8,0" Click="Send_Click"/>
+            <Button Grid.Column="2" Content="Clear" Width="70" Height="50" Click="Clear_Click" Background="#EF4444" ToolTip="Clear chat history"/>
         </Grid>
     </Grid>
 </Window>

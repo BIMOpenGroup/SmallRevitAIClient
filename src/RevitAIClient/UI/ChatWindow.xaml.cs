@@ -16,6 +16,7 @@ namespace RevitAIClient.UI
     public partial class ChatWindow : Window
     {
         private List<ChatMessage> _history = new List<ChatMessage>();
+        private List<ChatMessage> _displayHistory = new List<ChatMessage>();
         private CancellationTokenSource _cts;
         private List<IRevitSkill> _skills = new List<IRevitSkill>();
 
@@ -30,8 +31,10 @@ namespace RevitAIClient.UI
             _skills.Add(new GetActiveViewSkill());
             _skills.Add(new SetElementParameterSkill());
             _skills.Add(new UpdateCategoryParamInActiveViewSkill());
+            _skills.Add(new GetElementParametersSkill());
             
             LoadApiKey();
+            LoadHistory();
         }
 
         private string GetConfigPath()
@@ -40,6 +43,67 @@ namespace RevitAIClient.UI
             var folder = Path.Combine(appData, "RevitAIClient");
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
             return Path.Combine(folder, "apikey.txt");
+        }
+
+        private string GetHistoryPath()
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var folder = Path.Combine(appData, "RevitAIClient");
+            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+            return Path.Combine(folder, "history.json");
+        }
+
+        private void LoadHistory()
+        {
+            try
+            {
+                var path = GetHistoryPath();
+                if (File.Exists(path))
+                {
+                    var json = File.ReadAllText(path);
+                    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+                    _displayHistory = serializer.Deserialize<List<ChatMessage>>(json) ?? new List<ChatMessage>();
+                    
+                    foreach (var msg in _displayHistory)
+                    {
+                        if (msg.role == "user")
+                            AddMessageToUI("User", msg.content, null);
+                        else if (msg.role == "assistant" && !string.IsNullOrEmpty(msg.content))
+                            AddMessageToUI("Assistant", msg.content, null);
+                        else if (msg.role == "tool")
+                            AddMessageToUI("System [Tool Result]", msg.content, null);
+                    }
+                    ChatScroll.ScrollToBottom();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"Error loading history: {ex.Message}");
+            }
+        }
+
+        private void SaveDisplayHistory()
+        {
+            try
+            {
+                var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+                File.WriteAllText(GetHistoryPath(), serializer.Serialize(_displayHistory));
+            }
+            catch { }
+        }
+
+        private void RecordMessage(ChatMessage msg)
+        {
+            _history.Add(msg);
+            _displayHistory.Add(msg);
+            SaveDisplayHistory();
+        }
+
+        private void UndoLastMessage()
+        {
+            if (_history.Count > 0) _history.RemoveAt(_history.Count - 1);
+            if (_displayHistory.Count > 0) _displayHistory.RemoveAt(_displayHistory.Count - 1);
+            SaveDisplayHistory();
         }
 
         private void LoadApiKey()
@@ -110,7 +174,7 @@ namespace RevitAIClient.UI
             // Сохраняем ключ при успешной отправке
             SaveApiKey(apiKey);
 
-            _history.Add(new ChatMessage { role = "user", content = userText });
+            RecordMessage(new ChatMessage { role = "user", content = userText });
             AddMessageToUI("User", userText, Brushes.LightBlue);
             
             InputBox.Text = string.Empty;
@@ -142,7 +206,7 @@ namespace RevitAIClient.UI
                     assistantBlock.Text += $"\n[Error: {ex.Message}]";
                 });
                 LogDebug($"Исключение: {ex.ToString()}");
-                _history.RemoveAt(_history.Count - 1); // Удаляем запрос юзера при ошибке
+                UndoLastMessage(); // Удаляем запрос юзера при ошибке
             }
             finally
             {
@@ -169,7 +233,7 @@ namespace RevitAIClient.UI
             if (toolCalls != null && toolCalls.Count > 0)
             {
                 // Добавляем ответ ассистента с вызовом функций
-                _history.Add(new ChatMessage { role = "assistant", content = assistantContent, tool_calls = toolCalls });
+                RecordMessage(new ChatMessage { role = "assistant", content = assistantContent, tool_calls = toolCalls });
                 
                 foreach (var call in toolCalls)
                 {
@@ -213,7 +277,7 @@ namespace RevitAIClient.UI
                     LogDebug($"[Tool Result] {result}");
                     
                     // Добавляем результат выполнения в историю
-                    _history.Add(new ChatMessage { role = "tool", tool_call_id = call.id, name = call.function.name, content = result });
+                    RecordMessage(new ChatMessage { role = "tool", tool_call_id = call.id, name = call.function.name, content = result });
                     
                     Dispatcher.Invoke(() =>
                     {
@@ -235,12 +299,29 @@ namespace RevitAIClient.UI
                     assistantContent = "[Empty Response]";
                     Dispatcher.Invoke(() => assistantBlock.Text = assistantContent);
                 }
-                _history.Add(new ChatMessage { role = "assistant", content = assistantContent });
+                RecordMessage(new ChatMessage { role = "assistant", content = assistantContent });
                 LogDebug("Ответ успешно получен и поток закрыт.");
             }
         }
 
-        private TextBlock AddMessageToUI(string sender, string text, Brush bgBrush)
+        private void Clear_Click(object sender, RoutedEventArgs e)
+        {
+            ChatHistoryPanel.Children.Clear();
+            _displayHistory.Clear();
+            _history.Clear();
+            _history.Add(new ChatMessage { role = "system", content = "You are a helpful Revit AI Assistant. Be concise and precise." });
+            
+            try
+            {
+                var path = GetHistoryPath();
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch { }
+            
+            InputBox.Focus();
+        }
+
+        private TextBlock AddMessageToUI(string sender, string text, Brush bgBrush = null)
         {
             // Цветовая схема для современного дизайна
             bool isUser = sender.Equals("User", StringComparison.OrdinalIgnoreCase);
