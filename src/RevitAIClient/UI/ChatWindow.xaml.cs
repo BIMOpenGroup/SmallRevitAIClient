@@ -215,12 +215,13 @@ namespace RevitAIClient.UI
 
         private void LogDebug(string message)
         {
-#if DEBUG
             Dispatcher.Invoke(() =>
             {
-                AddMessageToUI("System [DEBUG]", message, Brushes.LightYellow);
+                if (DebugModeCheck.IsChecked == true)
+                {
+                    AddMessageToUI("System [DEBUG]", message, Brushes.LightYellow);
+                }
             });
-#endif
         }
 
         private void InputBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -301,11 +302,39 @@ namespace RevitAIClient.UI
             }
         }
 
+        private List<ChatMessage> GetMessagesToSend()
+        {
+            bool sendContext = false;
+            Dispatcher.Invoke(() => sendContext = SendContextCheck.IsChecked == true);
+
+            if (sendContext)
+            {
+                return _history;
+            }
+            else
+            {
+                var list = new List<ChatMessage>();
+                if (_history.Count > 0)
+                    list.Add(_history[0]); // System prompt
+                
+                int lastUserIdx = _history.FindLastIndex(m => m.role == "user");
+                if (lastUserIdx > 0)
+                {
+                    for (int i = lastUserIdx; i < _history.Count; i++)
+                    {
+                        list.Add(_history[i]);
+                    }
+                }
+                return list;
+            }
+        }
+
         private async Task ProcessLLMRequestAsync(OpenAIProvider provider, TextBlock assistantBlock, string assistantContent)
         {
             var tools = _skills.ConvertAll(s => s.GetSchema());
+            var messagesToSend = GetMessagesToSend();
             
-            var toolCalls = await provider.SendMessageStreamAsync(_history, tools, token =>
+            var toolCalls = await provider.SendMessageStreamAsync(messagesToSend, tools, token =>
             {
                 Dispatcher.Invoke(() =>
                 {

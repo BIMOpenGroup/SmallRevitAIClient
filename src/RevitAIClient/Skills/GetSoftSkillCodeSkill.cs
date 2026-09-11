@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
+using RevitAIClient.LLM;
 using RevitAIClient.Skills.Dynamic;
 
 namespace RevitAIClient.Skills
@@ -29,18 +30,27 @@ namespace RevitAIClient.Skills
         {
             return new ToolSchema
             {
-                Type = "object",
-                Properties = new System.Collections.Generic.Dictionary<string, object>
+                type = "function",
+                function = new FunctionSchema
                 {
+                    name = Name,
+                    description = Description,
+                    parameters = new
                     {
-                        "skillName", new
+                        type = "object",
+                        properties = new System.Collections.Generic.Dictionary<string, object>
                         {
-                            type = "string",
-                            description = "The exact name of the skill to read (e.g., 'DrawWallSkill')."
-                        }
+                            {
+                                "skillName", new
+                                {
+                                    type = "string",
+                                    description = "The exact name of the skill to read (e.g., 'DrawWallSkill')."
+                                }
+                            }
+                        },
+                        required = new[] { "skillName" }
                     }
-                },
-                Required = new[] { "skillName" }
+                }
             };
         }
 

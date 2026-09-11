@@ -152,6 +152,14 @@
                                 <ComboBoxItem Content="high"/>
                             </ComboBox>
                         </Grid>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <CheckBox x:Name="SendContextCheck" Content="Send Context" Grid.Column="0" VerticalAlignment="Center" IsChecked="False" Foreground="#4B5563" ToolTip="Send full chat history to LLM"/>
+                            <CheckBox x:Name="DebugModeCheck" Content="Debug Logs" Grid.Column="1" VerticalAlignment="Center" IsChecked="False" Foreground="#4B5563" ToolTip="Show system debug messages in chat"/>
+                        </Grid>
                     </StackPanel>
                 </Border>
             </StackPanel>

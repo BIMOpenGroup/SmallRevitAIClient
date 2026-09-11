@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
+using RevitAIClient.LLM;
 using RevitAIClient.Skills.Dynamic;
 
 namespace RevitAIClient.Skills
@@ -32,39 +33,48 @@ namespace RevitAIClient.Skills
         {
             return new ToolSchema
             {
-                Type = "object",
-                Properties = new System.Collections.Generic.Dictionary<string, object>
+                type = "function",
+                function = new FunctionSchema
                 {
+                    name = Name,
+                    description = Description,
+                    parameters = new
                     {
-                        "skillName", new
+                        type = "object",
+                        properties = new System.Collections.Generic.Dictionary<string, object>
                         {
-                            type = "string",
-                            description = "Name of the skill (a-zA-Z0-9_-), e.g., 'DrawWallSkill'."
-                        }
-                    },
-                    {
-                        "description", new
-                        {
-                            type = "string",
-                            description = "What the skill does and when to use it."
-                        }
-                    },
-                    {
-                        "parametersSchemaJson", new
-                        {
-                            type = "string",
-                            description = "JSON schema for the arguments this skill expects (as a JSON string)."
-                        }
-                    },
-                    {
-                        "csharpCode", new
-                        {
-                            type = "string",
-                            description = "The C# code body. MUST be valid C# 5.0 syntax. Do not use string interpolation ($). You have access to 'app' (UIApplication) and 'argumentsJson' (string). Return a string result."
-                        }
+                            {
+                                "skillName", new
+                                {
+                                    type = "string",
+                                    description = "Name of the skill (a-zA-Z0-9_-), e.g., 'DrawWallSkill'."
+                                }
+                            },
+                            {
+                                "description", new
+                                {
+                                    type = "string",
+                                    description = "What the skill does and when to use it."
+                                }
+                            },
+                            {
+                                "parametersSchemaJson", new
+                                {
+                                    type = "string",
+                                    description = "JSON schema for the arguments this skill expects (as a JSON string)."
+                                }
+                            },
+                            {
+                                "csharpCode", new
+                                {
+                                    type = "string",
+                                    description = "The C# code body. MUST be valid C# 5.0 syntax. Do not use string interpolation ($). You have access to 'app' (UIApplication) and 'argumentsJson' (string). Return a string result."
+                                }
+                            }
+                        },
+                        required = new[] { "skillName", "description", "parametersSchemaJson", "csharpCode" }
                     }
-                },
-                Required = new[] { "skillName", "description", "parametersSchemaJson", "csharpCode" }
+                }
             };
         }
 

@@ -34,23 +34,52 @@ namespace RevitAIClient.Skills.Dynamic
             {
                 return new ToolSchema
                 {
-                    Type = "object",
-                    Properties = new System.Collections.Generic.Dictionary<string, object>()
+                    type = "function",
+                    function = new FunctionSchema
+                    {
+                        name = Name,
+                        description = Description,
+                        parameters = new
+                        {
+                            type = "object",
+                            properties = new System.Collections.Generic.Dictionary<string, object>()
+                        }
+                    }
                 };
             }
 
             try
             {
-                return _serializer.Deserialize<ToolSchema>(_definition.Schema);
+                // Десериализуем схему параметров (то, что LLM передала в parametersSchemaJson)
+                var parametersSchema = _serializer.Deserialize<object>(_definition.Schema);
+                
+                return new ToolSchema
+                {
+                    type = "function",
+                    function = new FunctionSchema
+                    {
+                        name = Name,
+                        description = Description,
+                        parameters = parametersSchema
+                    }
+                };
             }
             catch (Exception ex)
             {
-                // Если LLM написала невалидный JSON для схемы
                 System.Diagnostics.Debug.WriteLine($"Failed to parse schema for {Name}: {ex.Message}");
                 return new ToolSchema
                 {
-                    Type = "object",
-                    Properties = new System.Collections.Generic.Dictionary<string, object>()
+                    type = "function",
+                    function = new FunctionSchema
+                    {
+                        name = Name,
+                        description = Description,
+                        parameters = new
+                        {
+                            type = "object",
+                            properties = new System.Collections.Generic.Dictionary<string, object>()
+                        }
+                    }
                 };
             }
         }
