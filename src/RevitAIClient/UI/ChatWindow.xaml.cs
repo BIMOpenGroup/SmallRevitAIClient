@@ -111,7 +111,7 @@ namespace RevitAIClient.UI
                         assistantBlock.Text += token;
                         assistantContent += token;
                         ChatScroll.ScrollToBottom();
-                    });
+                    }, System.Windows.Threading.DispatcherPriority.Background);
                 }, _cts.Token);
 
                 _history.Add(new ChatMessage { role = "assistant", content = assistantContent });
