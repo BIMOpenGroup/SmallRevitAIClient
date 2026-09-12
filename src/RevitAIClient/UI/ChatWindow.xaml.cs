@@ -36,6 +36,14 @@ namespace RevitAIClient.UI
             
             LoadApiKey();
             LoadHistory();
+            LoadWindowSettings();
+            
+            this.Closing += ChatWindow_Closing;
+        }
+
+        private void ChatWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            SaveWindowSettings();
         }
 
         private void InitializeSkills()
@@ -130,6 +138,76 @@ namespace RevitAIClient.UI
         private void SkillsToggleBtn_Click(object sender, RoutedEventArgs e)
         {
             SkillsPanel.Visibility = SkillsToggleBtn.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private string GetWindowSettingsPath()
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var folder = Path.Combine(appData, "RevitAIClient");
+            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+            return Path.Combine(folder, "window_settings.json");
+        }
+
+        private void SaveWindowSettings()
+        {
+            try
+            {
+                var settings = new Dictionary<string, double>
+                {
+                    { "Width", this.ActualWidth },
+                    { "Height", this.ActualHeight },
+                    { "Top", this.Top },
+                    { "Left", this.Left }
+                };
+                var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+                File.WriteAllText(GetWindowSettingsPath(), serializer.Serialize(settings));
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"Error saving window settings: {ex.Message}");
+            }
+        }
+
+        private void LoadWindowSettings()
+        {
+            try
+            {
+                var path = GetWindowSettingsPath();
+                if (File.Exists(path))
+                {
+                    var json = File.ReadAllText(path);
+                    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+                    var settings = serializer.Deserialize<Dictionary<string, double>>(json);
+                    if (settings != null)
+                    {
+                        if (settings.ContainsKey("Width") && settings["Width"] > 100) this.Width = settings["Width"];
+                        if (settings.ContainsKey("Height") && settings["Height"] > 100) this.Height = settings["Height"];
+                        
+                        if (settings.ContainsKey("Top") && settings.ContainsKey("Left"))
+                        {
+                            double top = settings["Top"];
+                            double left = settings["Left"];
+                            double w = settings.ContainsKey("Width") ? settings["Width"] : this.Width;
+                            double h = settings.ContainsKey("Height") ? settings["Height"] : this.Height;
+                            
+                            // Проверка, что окно будет видно на экране (защита от сохранения координат с отключенного монитора)
+                            if (left < SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth &&
+                                top < SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight &&
+                                left + w > SystemParameters.VirtualScreenLeft &&
+                                top + h > SystemParameters.VirtualScreenTop)
+                            {
+                                this.Top = top;
+                                this.Left = left;
+                                this.WindowStartupLocation = WindowStartupLocation.Manual;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"Error loading window settings: {ex.Message}");
+            }
         }
 
         private string GetConfigPath()

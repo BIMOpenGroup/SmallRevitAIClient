@@ -12,7 +12,7 @@
 
         <!-- Современная кнопка -->
         <Style TargetType="Button">
-            <Setter Property="Background" Value="#005FB8"/>
+            <Setter Property="Background" Value="#305B43"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="10,5"/>
@@ -189,7 +189,7 @@
                             </Grid.ColumnDefinitions>
                             <CheckBox x:Name="UseThinkingCheck" Content="Thinking" Grid.Column="0" VerticalAlignment="Center" IsChecked="False" Foreground="#4B5563"/>
                             <TextBlock Text="Effort:" Grid.Column="2" Style="{StaticResource SettingsLabel}"/>
-                            <ComboBox x:Name="EffortCombo" Grid.Column="3" Height="28" SelectedIndex="2">
+                            <ComboBox x:Name="EffortCombo" Grid.Column="3" Height="28" SelectedIndex="2" IsEnabled="{Binding ElementName=UseThinkingCheck, Path=IsChecked}">
                                 <ComboBoxItem Content="low"/>
                                 <ComboBoxItem Content="medium"/>
                                 <ComboBoxItem Content="high"/>
